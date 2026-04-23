@@ -1,0 +1,126 @@
+"""
+CS 340 - module 6 - CRUD Python Module
+AnimalShelter Full CRUD Module
+Author: Rimon Hamo
+Date: 04/09/2026
+
+This file contains the complete AnimalShelter class with ALL FOUR CRUD operations:
+Create, Read, Update, and Delete.
+"""
+
+from pymongo import MongoClient          # This is the official Python driver for MongoDB
+from pymongo.errors import PyMongoError  # This lets us catch MongoDB-specific errors
+import sys                               # Used only if the connection fails (to exit safely)
+
+class AnimalShelter(object):# We define the AnimalShelter class, which will contain all the CRUD methods for interacting with the animals collection in MongoDB. This class is designed to be imported and reused by any other Python script that needs to perform CRUD operations on the animals collection.
+    """ 
+    CRUD operations for the Animal collection in MongoDB.
+    This class is designed to be imported and reused by any other Python script.
+    """
+
+    def __init__(self, username='aacuser', password='aacuser123!'): # The constructor now accepts username and password parameters, which allows for more flexible authentication when connecting to MongoDB. This change is required for Module Five Assignment, as it allows the class to be used in different environments with different credentials.
+        """
+        Constructor - now accepts username and password from the dashboard.
+        """
+        # ====================== CONNECTION SETTINGS ======================
+        USER = username
+        PASS = password
+        HOST = 'localhost'
+        PORT = 27017
+        DB   = 'aac'
+        COL  = 'aac_shelter_outcomes'
+        
+        # ====================== CONNECT TO MONGODB ======================
+        try:
+            self.client = MongoClient(f'mongodb://{USER}:{PASS}@{HOST}:{PORT}/?authSource={DB}')# We create a MongoClient instance to connect to the MongoDB server using the provided credentials and connection details. The connection string is formatted to include the username, password, host, and port.
+            self.database  = self.client['%s' % (DB)]# We access the specific database (aac) that we want to work with. This allows us to perform operations on that database.
+            self.collection = self.database[COL]# We access the specific collection (aac_shelter_outcomes) within the database that we want to perform CRUD operations on. This allows us to interact with the documents in that collection.
+            self.client.server_info()# We call server_info() to force a connection to the MongoDB server and check if it's successful. If the connection fails, it will raise an exception that we can catch.
+            print("✅ Successfully connected to MongoDB.")# If the connection is successful, we print a confirmation message. This helps with debugging and confirms that the class is ready to perform CRUD operations.
+        except PyMongoError as e:# We catch any exceptions that occur during the connection process. If an error occurs, we print the error message and exit the program safely using sys.exit(1) to indicate that there was an error.
+            print(f"❌ Connection error: {e}")# We catch any exceptions that occur during the connection process. If an error occurs, we print the error message and exit the program safely using sys.exit(1) to indicate that there was an error.
+            sys.exit(1)
+
+    # ====================== CREATE METHOD ======================
+    def create(self, data):
+        """
+        CREATE (C in CRUD)
+        Inserts ONE new document into the aac_shelter_outcomes collection.
+        
+        Input:  data → must be a Python dictionary
+        Return: True if insert was successful, False if it failed
+        """
+        # Validation added per instructor feedback
+        if data is None or not isinstance(data, dict):# We validate that the data is a dictionary, as required by the project. If it's not valid, we print an error and return False to indicate that the document was not created.
+            print("❌ Data parameter must be a valid dictionary.")# We validate that the data is a dictionary, as required by the project. If it's not valid, we print an error and
+            return False
+        try:
+            result = self.collection.insert_one(data)# We use insert_one to add a single document to the collection. The result object contains information about the operation, including whether it was acknowledged by the server.
+            return result.acknowledged
+        except PyMongoError as e:# We catch any errors that occur during the create operation and print them. We return False to indicate that the document was not created due to the error.
+            print(f"❌ Create error: {e}")# We catch any errors that occur during the create operation and print them. We return False to indicate that the document was not created due to the error.
+            return False
+
+    # ====================== READ METHOD ======================
+    def read(self, query):
+        """ 
+        READ (R in CRUD)
+        Queries for document(s) from the aac_shelter_outcomes collection.
+        
+        Input:  query → must be a Python dictionary
+        Return: list of matching documents (or empty list if none found)
+        IMPORTANT: We use .find() NOT .find_one() as required by the project.
+        """
+        # Validation added per instructor feedback
+        if query is None or not isinstance(query, dict):# We validate that the query is a dictionary, as required by the project. If it's not valid, we print an error and return an empty list to indicate that no documents were found.
+            print("❌ Query parameter must be a valid dictionary.")# We validate that the query is a dictionary, as required by the project. If it's not valid, we print an error and return an empty list to indicate that no documents were found.
+            return []
+        try:
+            cursor = self.collection.find(query)# We use .find() to allow for returning multiple documents that match the query, as required by the project. The cursor is an iterable that we can convert to a list to get all matching documents.
+            return list(cursor)# We convert the cursor to a list to return all matching documents. This allows for returning multiple documents if needed, as required by the project.
+        except PyMongoError as e:# We catch any errors that occur during the read operation and print them. We return an empty list to indicate that no documents were found due to the error.
+            print(f"❌ Read error: {e}")# We catch any errors that occur during the read operation and print them. We return an empty list to indicate that no documents were found due to the error.
+            return []
+
+    # ====================== UPDATE METHOD ======================
+    def update(self, query, update_data):# We will update documents that match the query using the update_data, which should contain MongoDB update operators (like $set). This allows for updating multiple documents if needed, as required by the project.
+        """ 
+        UPDATE (U in CRUD)
+        Changes document(s) that match the query.
+        
+        Input: 
+            query       → dictionary (which documents to update)
+            update_data → dictionary using MongoDB update operators
+        Return: number of documents that were actually modified
+        """
+        # Validation added per instructor feedback
+        if (query is None or not isinstance(query, dict)) or \
+        (update_data is None or not isinstance(update_data, dict)):# We validate that both the query and update_data are dictionaries, as required by the project. If either is not valid, we print an error and return 0 to indicate that no documents were updated.
+            print("❌ Query and update_data must both be valid dictionaries.")# We validate that both the query and update_data are dictionaries, as required by the project. If either is not valid, we print an error and
+            return 0
+        try:
+            result = self.collection.update_many(query, update_data)# We use update_many to allow for updating multiple documents that match the query, as required by the project. The result object contains information about how many documents were modified.
+            return result.modified_count# We return the number of documents that were actually modified, which is more informative than just returning True/False.
+        except PyMongoError as e:# We catch any errors that occur during the update operation and print them. We return 0 to indicate that no documents were updated due to the error.
+            print(f"❌ Update error: {e}")# We catch any errors that occur during the update operation and print them. We return 0 to indicate that no documents were updated due to the error.
+            return 0
+
+    # ====================== DELETE METHOD ======================
+    def delete(self, query):# We will delete documents that match the query. This allows for deleting multiple documents if needed, as required by the project.
+        """ 
+        DELETE (D in CRUD)
+        Removes document(s) that match the query.
+        
+        Input:  query → dictionary (which documents to delete)
+        Return: number of documents that were actually deleted
+        """
+        # Validation added per instructor feedback
+        if query is None or not isinstance(query, dict):# We validate that the query is a dictionary, as required by the project. If it's not valid, we print an error and return 0 to indicate that no documents were deleted.
+            print("❌ Query parameter must be a valid dictionary.")# We validate that the query is a dictionary, as required by the project. If it's not valid, we print an error and
+            return 0
+        try:
+            result = self.collection.delete_many(query)# We use delete_many to allow for deleting multiple documents that match the query, as required by the project. The result object contains information about how many documents were deleted.
+            return result.deleted_count# We return the number of documents that were actually deleted, which is more informative than just returning True/False.
+        except PyMongoError as e:# We catch any errors that occur during the delete operation and print them. We return 0 to indicate that no documents were deleted due to the error.
+            print(f"❌ Delete error: {e}")# We catch any errors that occur during the delete operation and print them. We return 0 to indicate that no documents were deleted due to the error.
+            return 0
