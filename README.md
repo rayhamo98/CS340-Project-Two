@@ -54,9 +54,4 @@ This type of work matters because it increases operational efficiency, reduces m
 
 ---
 
-## AI Tool Usage Acknowledgment
-Grok (built by xAI) was used to help structure and refine the reflection responses in this README.
-
----
-
 **Thank you for reviewing my CS 340 Portfolio Artifact.**
